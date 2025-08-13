@@ -26,19 +26,19 @@ const feedbackSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    //   status: {
-    //     type: String,
-    //     enum: ['pending', 'reviewed', 'resolved', 'rejected'],
-    //     default: 'pending'
-    //   },
-    //   adminRemarks: {
-    //     type: String,
-    //     default: ''
-    //   },
-    //   isAnonymous: {
-    //     type: Boolean,
-    //     default: false
-    //   }
+    status: {
+        type: String,
+        enum: ['pending', 'reviewed', 'resolved', 'rejected'],
+        default: 'pending'
+    },
+    adminRemarks: {
+        type: String,
+        default: ''
+    },
+    isAnonymous: {
+        type: Boolean,
+        default: false
+    }
 }, {
     timestamps: true
 });

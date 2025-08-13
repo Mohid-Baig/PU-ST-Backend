@@ -13,6 +13,7 @@ import userRoutes from './routes/User.js';
 import issuesRoutes from './routes/IssuesRoute.js';
 import LostFoundRoute from './routes/LostFoundRoute.js';
 import feedbackRoutes from './routes/FeedBackRoute.js';
+import helpboardRoutes from './routes/HelpBoardRoute.js';
 import basicAuth from 'express-basic-auth';
 
 dotenv.config();
@@ -20,7 +21,6 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// Fallback credentials if .env is missing
 const SWAGGER_USERNAME = process.env.SWAGGER_USERNAME;
 const SWAGGER_PASSWORD = process.env.SWAGGER_PASSWORD;
 
@@ -52,6 +52,7 @@ app.use('/api/auth', userRoutes);
 app.use('/api/report', issuesRoutes);
 app.use('/api/lostfound', LostFoundRoute);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/helpboard', helpboardRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
