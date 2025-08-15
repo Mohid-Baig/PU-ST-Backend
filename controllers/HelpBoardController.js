@@ -1,4 +1,4 @@
-import HelpBoardPost from "../models/helpBoardPostSchema.js";
+import HelpBoardPost from "../models/helpBoardSchemma.js";
 
 export const createHelpBoardPost = async (req, res) => {
     try {
@@ -61,18 +61,34 @@ export const likeHelpBoardPost = async (req, res) => {
         const alreadyLiked = post.likes.includes(req.user._id);
 
         if (alreadyLiked) {
-            post.likes = post.likes.filter(userId => userId.toString() !== req.user._id.toString());
+            post.likes = post.likes.filter(
+                userId => userId.toString() !== req.user._id.toString()
+            );
         } else {
             post.likes.push(req.user._id);
         }
 
         await post.save();
-        res.status(200).json({ message: alreadyLiked ? "Post unliked." : "Post liked.", post });
+
+        const likeCount = post.likes.length;
+        const likedByMe = post.likes.some(
+            id => id.toString() === req.user._id.toString()
+        );
+
+        res.status(200).json({
+            message: alreadyLiked ? "Post unliked." : "Post liked.",
+            post: {
+                _id: post._id,
+                likeCount,
+                likedByMe
+            }
+        });
     } catch (error) {
         console.error("Error liking post:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
 
 export const addReplyToHelpBoardPost = async (req, res) => {
     try {

@@ -38,11 +38,6 @@ const pollSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
-    visibility: {
-        type: String,
-        enum: ['public', 'private'],
-        default: 'public'
-    },
     votedUsers: [
         {
             type: mongoose.Schema.Types.ObjectId,
