@@ -1,4 +1,5 @@
 import HelpBoardPost from "../models/helpBoardSchemma.js";
+import { sendNotification } from "../services/notificationService.js";
 
 export const createHelpBoardPost = async (req, res) => {
     try {
@@ -29,7 +30,7 @@ export const getAllHelpBoardPosts = async (req, res) => {
             .populate('postedBy', 'fullName profileImageUrl')
             .populate('replies.user', 'fullName profileImageUrl')
             .sort({ createdAt: -1 })
-            .lean(); // makes the result plain JS objects so we can add custom fields
+            .lean();
 
         const enrichedPosts = posts.map(post => ({
             ...post,
@@ -52,7 +53,7 @@ export const getAllHelpBoardPosts = async (req, res) => {
 export const likeHelpBoardPost = async (req, res) => {
     try {
         const { id } = req.params;
-        const post = await HelpBoardPost.findById(id);
+        const post = await HelpBoardPost.findById(id).populate('postedBy', 'fullName fcmToken');
 
         if (!post) {
             return res.status(404).json({ message: "Post not found." });
@@ -66,22 +67,22 @@ export const likeHelpBoardPost = async (req, res) => {
             );
         } else {
             post.likes.push(req.user._id);
+
+            if (post.postedBy && post.postedBy._id.toString() !== req.user._id.toString()) {
+                await sendNotification({
+                    token: post.postedBy.fcmToken,
+                    title: "New Like on Your Post",
+                    body: `${req.user.fullName} liked your post: ${post.title}`
+                });
+            }
         }
 
         await post.save();
 
-        const likeCount = post.likes.length;
-        const likedByMe = post.likes.some(
-            id => id.toString() === req.user._id.toString()
-        );
-
         res.status(200).json({
             message: alreadyLiked ? "Post unliked." : "Post liked.",
-            post: {
-                _id: post._id,
-                likeCount,
-                likedByMe
-            }
+            likeCount: post.likes.length,
+            likedByMe: !alreadyLiked
         });
     } catch (error) {
         console.error("Error liking post:", error);
@@ -99,7 +100,7 @@ export const addReplyToHelpBoardPost = async (req, res) => {
             return res.status(400).json({ message: "Reply message is required." });
         }
 
-        const post = await HelpBoardPost.findById(id);
+        const post = await HelpBoardPost.findById(id).populate('postedBy', 'fullName fcmToken');
         if (!post) {
             return res.status(404).json({ message: "Post not found." });
         }
@@ -110,12 +111,22 @@ export const addReplyToHelpBoardPost = async (req, res) => {
         });
 
         await post.save();
+
+        if (post.postedBy && post.postedBy._id.toString() !== req.user._id.toString()) {
+            await sendNotification({
+                token: post.postedBy.fcmToken,
+                title: "New Reply to Your Post",
+                body: `${req.user.fullName} replied: ${message}`
+            });
+        }
+
         res.status(200).json({ message: "Reply added successfully.", post });
     } catch (error) {
         console.error("Error adding reply:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
 
 export const updateHelpBoardStatus = async (req, res) => {
     try {

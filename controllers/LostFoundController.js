@@ -1,6 +1,8 @@
 import LostFound from "../models/lostFoundSchemma.js";
 import fs from 'fs';
 import path from 'path';
+import { sendNotification } from "../services/notificationService.js";
+import User from "../models/userSchemma.js";
 
 export const createLostFoundItem = async (req, res) => {
     try {
@@ -97,6 +99,7 @@ export const deleteLostFoundItem = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
 export const matchLostAndFoundItems = async (req, res) => {
     try {
         const { lostItemId, foundItemId } = req.body;
@@ -121,8 +124,27 @@ export const matchLostAndFoundItems = async (req, res) => {
         await lostItem.save();
         await foundItem.save();
 
+        const lostItemUser = await User.findById(lostItem.reportedBy);
+        const foundItemUser = await User.findById(foundItem.reportedBy);
+
+        if (lostItemUser?.fcmToken) {
+            await sendNotification(
+                lostItemUser.fcmToken,
+                "Lost Item Matched",
+                `We found a possible match for your lost item: "${lostItem.title}".`
+            );
+        }
+
+        if (foundItemUser?.fcmToken) {
+            await sendNotification(
+                foundItemUser.fcmToken,
+                "Found Item Matched",
+                `We found a possible match for your found item: "${foundItem.title}".`
+            );
+        }
+
         res.status(200).json({
-            message: "Lost and Found items matched and archived successfully.",
+            message: "Lost and Found items matched, archived, and users notified successfully.",
             lostItem,
             foundItem
         });
@@ -132,6 +154,7 @@ export const matchLostAndFoundItems = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
 
 export const updateLostFoundStatus = async (req, res) => {
     try {

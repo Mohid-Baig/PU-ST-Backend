@@ -1,4 +1,8 @@
 import AnonymousConfession from "../models/anonymousConfessSchemma.js";
+import { sendNotification } from "../services/notificationService.js";
+import User from "../models/userSchemma.js";
+
+
 export const createConfession = async (req, res) => {
     try {
         const { message } = req.body;
@@ -55,9 +59,22 @@ export const likeConfession = async (req, res) => {
         const alreadyLiked = confession.likes.includes(req.user._id);
 
         if (alreadyLiked) {
-            confession.likes = confession.likes.filter(uid => uid.toString() !== req.user._id.toString());
+            confession.likes = confession.likes.filter(
+                uid => uid.toString() !== req.user._id.toString()
+            );
         } else {
             confession.likes.push(req.user._id);
+
+            if (confession.postedBy && confession.postedBy.toString() !== req.user._id.toString()) {
+                const owner = await User.findById(confession.postedBy);
+                if (owner?.fcmToken) {
+                    await sendNotification(
+                        owner.fcmToken,
+                        "Someone liked your confession",
+                        "Your anonymous confession got a new like!"
+                    );
+                }
+            }
         }
 
         await confession.save();
@@ -89,6 +106,15 @@ export const reportConfession = async (req, res) => {
         });
 
         await confession.save();
+
+        const admins = await User.find({ role: "admin", fcmToken: { $exists: true, $ne: "" } });
+        for (const admin of admins) {
+            await sendNotification(
+                admin.fcmToken,
+                "Confession Reported",
+                `A confession has been reported for: ${reason || "No reason provided"}`
+            );
+        }
 
         res.status(200).json({ message: "Confession reported successfully." });
     } catch (error) {

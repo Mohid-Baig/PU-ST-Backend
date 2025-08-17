@@ -16,6 +16,7 @@ import feedbackRoutes from './routes/FeedBackRoute.js';
 import helpboardRoutes from './routes/HelpBoardRoute.js';
 import votepollRoutes from './routes/pollRoutes.js';
 import anonymousRoutes from './routes/anonymousRoute.js';
+import eventRoutes from './routes/eventnotificationRoute.js';
 import basicAuth from 'express-basic-auth';
 
 dotenv.config();
@@ -57,6 +58,7 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/helpboard', helpboardRoutes);
 app.use('/api/vote', votepollRoutes);
 app.use('/api/anonymous', anonymousRoutes);
+app.use('/api/events', eventRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

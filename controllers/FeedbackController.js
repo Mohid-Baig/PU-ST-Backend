@@ -1,4 +1,5 @@
 import Feedback from "../models/feedbackSchemma.js";
+import { sendNotification } from "../services/notificationService.js";
 
 export const createFeedback = async (req, res) => {
     try {
@@ -83,7 +84,7 @@ export const updateFeedbackStatus = async (req, res) => {
             return res.status(400).json({ message: "Invalid status value." });
         }
 
-        const feedback = await Feedback.findById(id);
+        const feedback = await Feedback.findById(id).populate("submittedBy", "fullName fcmToken");
         if (!feedback) {
             return res.status(404).json({ message: "Feedback not found." });
         }
@@ -93,9 +94,16 @@ export const updateFeedbackStatus = async (req, res) => {
         }
 
         feedback.status = status;
-        feedback.adminRemarks = adminRemarks || '';
-
+        feedback.adminRemarks = adminRemarks || "";
         await feedback.save();
+
+        if (feedback.submittedBy?.fcmToken) {
+            await sendNotification({
+                token: feedback.submittedBy.fcmToken,
+                title: "Feedback Status Updated",
+                body: `Your feedback "${feedback.title}" has been marked as ${status}.`
+            });
+        }
 
         res.status(200).json({
             message: `Feedback status updated to ${status}.`,

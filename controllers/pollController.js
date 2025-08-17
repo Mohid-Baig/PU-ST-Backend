@@ -1,4 +1,6 @@
 import Poll from "../models/pollsVoteScheema.js";
+import { sendNotification } from "../services/notificationService.js";
+import User from '../models/userSchemma.js';
 
 export const createPoll = async (req, res) => {
     try {
@@ -16,6 +18,14 @@ export const createPoll = async (req, res) => {
         });
 
         await poll.save();
+
+        const students = await User.find({ role: "student", fcmToken: { $ne: null } }, "fcmToken");
+        const tokens = students.map(s => s.fcmToken);
+
+        for (const token of tokens) {
+            await sendNotification(token, "New Poll Available", `New poll: ${question}`, { pollId: poll._id.toString() });
+        }
+
         res.status(201).json({ message: "Poll created successfully.", poll });
     } catch (error) {
         console.error("Error creating poll:", error);
@@ -124,6 +134,12 @@ export const closePoll = async (req, res) => {
 
         poll.isActive = false;
         await poll.save();
+
+        // 🔔 Notify voters
+        const voters = await User.find({ _id: { $in: poll.votedUsers }, fcmToken: { $ne: null } }, "fcmToken");
+        for (const voter of voters) {
+            await sendNotification(voter.fcmToken, "Poll Closed", `Results are available for: ${poll.question}`, { pollId: poll._id.toString() });
+        }
 
         res.status(200).json({ message: "Poll closed successfully.", poll });
     } catch (error) {
