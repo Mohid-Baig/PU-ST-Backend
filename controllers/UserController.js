@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { sendVerificationEmail } from '../utils/sendEmail.js';
 import fs from 'fs';
 import path from 'path';
+import cloudinary from '../config/cloudinary.js';
 
 export const RegisterUser = async (req, res, next) => {
     const profileImage = req.files?.profileImage?.[0];
@@ -32,14 +33,39 @@ export const RegisterUser = async (req, res, next) => {
 
         const verificationToken = crypto.randomBytes(32).toString('hex');
 
+        let profileImageUrl = '';
+        let uniCardImageUrl = '';
+
+        if (profileImage) {
+            const profileResult = await cloudinary.uploader.upload_stream(
+                { folder: 'profile_images' },
+                (error, result) => {
+                    if (error) throw new Error(error.message);
+                    profileImageUrl = result.secure_url;
+                }
+            );
+            profileResult.end(profileImage.buffer);
+        }
+
+        if (uniCardImage) {
+            const uniCardResult = await cloudinary.uploader.upload_stream(
+                { folder: 'uni_card_images' },
+                (error, result) => {
+                    if (error) throw new Error(error.message);
+                    uniCardImageUrl = result.secure_url;
+                }
+            );
+            uniCardResult.end(uniCardImage.buffer);
+        }
+
         const user = await User.create({
             fullName,
             uniId,
             email,
             password,
             role,
-            profileImageUrl: profileImage?.path || '',
-            uniCardImageUrl: uniCardImage.path,
+            profileImageUrl,
+            uniCardImageUrl,
             verificationToken,
         });
 
@@ -61,21 +87,11 @@ export const RegisterUser = async (req, res, next) => {
         });
 
     } catch (error) {
-        if (profileImage?.path) {
-            fs.unlink(path.resolve(profileImage.path), err => {
-                if (err) console.error('Failed to delete profile image:', err.message);
-            });
-        }
-        if (uniCardImage?.path) {
-            fs.unlink(path.resolve(uniCardImage.path), err => {
-                if (err) console.error('Failed to delete uni card image:', err.message);
-            });
-        }
-
         console.error('RegisterUser Error:', error.message);
         res.status(400).json({ message: error.message });
     }
 };
+
 
 export const loginUser = async (req, res, next) => {
     try {
@@ -188,11 +204,27 @@ export const updateProfile = async (req, res, next) => {
         user.email = email;
 
         if (req.files?.profileImage?.[0]) {
-            user.profileImageUrl = req.files.profileImage[0].path;
+            const profileImage = req.files.profileImage[0];
+            const profileResult = await cloudinary.uploader.upload_stream(
+                { folder: 'profile_images' },
+                (error, result) => {
+                    if (error) throw new Error(error.message);
+                    user.profileImageUrl = result.secure_url;
+                }
+            );
+            profileResult.end(profileImage.buffer);
         }
 
         if (req.files?.uniCardImage?.[0]) {
-            user.uniCardImageUrl = req.files.uniCardImage[0].path;
+            const uniCardImage = req.files.uniCardImage[0];
+            const uniCardResult = await cloudinary.uploader.upload_stream(
+                { folder: 'uni_card_images' },
+                (error, result) => {
+                    if (error) throw new Error(error.message);
+                    user.uniCardImageUrl = result.secure_url;
+                }
+            );
+            uniCardResult.end(uniCardImage.buffer);
         }
 
         if (emailChanged) {
@@ -221,6 +253,7 @@ export const updateProfile = async (req, res, next) => {
         next(error);
     }
 };
+
 
 export const verifyEmail = async (req, res, next) => {
     try {

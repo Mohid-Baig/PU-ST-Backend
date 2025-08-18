@@ -3,10 +3,22 @@ import fs from 'fs';
 import path from 'path';
 import { sendNotification } from "../services/notificationService.js";
 import User from "../models/userSchemma.js";
+import cloudinary from '../config/cloudinary.js';
+
 
 export const createLostFoundItem = async (req, res) => {
     try {
-        const { title, description, type, category, dateLostOrFound, location, contactInfo, collectionInfo, isAnonymous } = req.body;
+        const {
+            title,
+            description,
+            type,
+            category,
+            dateLostOrFound,
+            location,
+            contactInfo,
+            collectionInfo,
+            isAnonymous
+        } = req.body;
 
         if (!title || !description || !type || !location) {
             return res.status(400).json({ message: "Title, description, type, and location are required." });
@@ -16,7 +28,23 @@ export const createLostFoundItem = async (req, res) => {
             return res.status(400).json({ message: "Type must be either 'lost' or 'found'." });
         }
 
-        const photos = req.files?.lostfoundImage?.map(file => file.path) || [];
+        // Upload images to Cloudinary
+        const files = req.files?.lostfoundImage || [];
+        const photos = [];
+
+        for (const file of files) {
+            const uploadResult = await new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    { folder: 'lostfound_images' },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                );
+                stream.end(file.buffer);
+            });
+            photos.push(uploadResult.secure_url);
+        }
 
         const newItem = new LostFound({
             title,
@@ -43,6 +71,7 @@ export const createLostFoundItem = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
 
 export const getAllLostFoundItems = async (req, res) => {
     try {
