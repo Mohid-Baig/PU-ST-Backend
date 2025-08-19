@@ -4,6 +4,7 @@ import path from 'path';
 import { sendNotification } from "../services/notificationService.js";
 import User from "../models/userSchemma.js";
 import cloudinary from '../config/cloudinary.js';
+import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
 
 
 export const createLostFoundItem = async (req, res) => {
@@ -28,7 +29,6 @@ export const createLostFoundItem = async (req, res) => {
             return res.status(400).json({ message: "Type must be either 'lost' or 'found'." });
         }
 
-        // Upload images to Cloudinary
         const files = req.files?.lostfoundImage || [];
         const photos = [];
 
@@ -43,7 +43,10 @@ export const createLostFoundItem = async (req, res) => {
                 );
                 stream.end(file.buffer);
             });
-            photos.push(uploadResult.secure_url);
+            photos.push({
+                url: uploadResult.secure_url,
+                public_id: uploadResult.public_id
+            });
         }
 
         const newItem = new LostFound({
@@ -71,6 +74,7 @@ export const createLostFoundItem = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
 
 
 export const getAllLostFoundItems = async (req, res) => {
@@ -108,16 +112,13 @@ export const deleteLostFoundItem = async (req, res) => {
         }
 
         if (item.photos && item.photos.length > 0) {
-            item.photos.forEach(photoPath => {
+            for (const photo of item.photos) {
                 try {
-                    const imagePath = path.resolve(photoPath);
-                    if (fs.existsSync(imagePath)) {
-                        fs.unlinkSync(imagePath);
-                    }
+                    await cloudinary.uploader.destroy(photo.public_id);
                 } catch (err) {
-                    console.error("Error deleting photo file:", err);
+                    console.error("Error deleting Cloudinary image:", err);
                 }
-            });
+            }
         }
 
         await LostFound.findByIdAndDelete(id);
@@ -128,6 +129,7 @@ export const deleteLostFoundItem = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
 
 export const matchLostAndFoundItems = async (req, res) => {
     try {

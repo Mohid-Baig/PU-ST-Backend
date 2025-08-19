@@ -6,56 +6,44 @@ import { sendVerificationEmail } from '../utils/sendEmail.js';
 import fs from 'fs';
 import path from 'path';
 import cloudinary from '../config/cloudinary.js';
-
-export const RegisterUser = async (req, res, next) => {
-    const profileImage = req.files?.profileImage?.[0];
-    const uniCardImage = req.files?.uniCardImage?.[0];
-
+import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
+import bcrypt from "bcryptjs";
+export const RegisterUser = async (req, res) => {
     try {
         const { fullName, uniId, email, password, role } = req.body;
+        const profileImage = req.files?.profileImage?.[0];
+        const uniCardImage = req.files?.uniCardImage?.[0];
 
         if (!fullName || !uniId || !email || !password) {
-            throw new Error('All fields are required');
+            throw new Error("All fields are required");
         }
 
         if (!validator.isEmail(email)) {
-            throw new Error('Invalid email format');
+            throw new Error("Invalid email format");
         }
 
         const existingUser = await User.findOne({ $or: [{ email }, { uniId }] });
         if (existingUser) {
-            throw new Error('Email or University ID already registered');
+            throw new Error("Email or University ID already registered");
         }
 
         if (!uniCardImage) {
-            throw new Error('University card image is required.');
+            throw new Error("University card image is required.");
         }
 
-        const verificationToken = crypto.randomBytes(32).toString('hex');
+        const verificationToken = crypto.randomBytes(32).toString("hex");
 
-        let profileImageUrl = '';
-        let uniCardImageUrl = '';
+        let profileImageUrl = "";
+        let uniCardImageUrl = "";
 
         if (profileImage) {
-            const profileResult = await cloudinary.uploader.upload_stream(
-                { folder: 'profile_images' },
-                (error, result) => {
-                    if (error) throw new Error(error.message);
-                    profileImageUrl = result.secure_url;
-                }
-            );
-            profileResult.end(profileImage.buffer);
+            const result = await uploadToCloudinary(profileImage.buffer, "profile_images");
+            profileImageUrl = result.secure_url;
         }
 
         if (uniCardImage) {
-            const uniCardResult = await cloudinary.uploader.upload_stream(
-                { folder: 'uni_card_images' },
-                (error, result) => {
-                    if (error) throw new Error(error.message);
-                    uniCardImageUrl = result.secure_url;
-                }
-            );
-            uniCardResult.end(uniCardImage.buffer);
+            const result = await uploadToCloudinary(uniCardImage.buffer, "uni_card_images");
+            uniCardImageUrl = result.secure_url;
         }
 
         const user = await User.create({
@@ -70,10 +58,9 @@ export const RegisterUser = async (req, res, next) => {
         });
 
         await sendVerificationEmail(email, verificationToken);
-        console.log('📧 Sent verification email to:', email);
 
         res.status(201).json({
-            message: 'User registered successfully. Please check your email for verification.',
+            message: "User registered successfully. Please check your email for verification.",
             user: {
                 id: user._id,
                 fullName: user.fullName,
@@ -81,68 +68,63 @@ export const RegisterUser = async (req, res, next) => {
                 uniId: user.uniId,
                 role: user.role,
                 isVerified: user.isVerified,
-                profileImageUrl: user.profileImageUrl,
-                uniCardImageUrl: user.uniCardImageUrl,
+                profileImageUrl,
+                uniCardImageUrl,
             },
         });
-
     } catch (error) {
-        console.error('RegisterUser Error:', error.message);
+        console.error("RegisterUser Error:", error.message);
         res.status(400).json({ message: error.message });
     }
 };
 
 
-export const loginUser = async (req, res, next) => {
+
+export const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
 
         if (!email || !password) {
-            return res.status(400).json({ message: 'Email and password are required' });
+            return res.status(400).json({ message: "Email and password required" });
         }
 
         const user = await User.findOne({ email });
-        if (!user || !(await user.comparePassword(password))) {
-            return res.status(401).json({ message: 'Invalid email or password' });
+        if (!user) {
+            return res.status(401).json({ message: "Invalid email or password" });
         }
 
-        if (!user.isVerified) {
-            return res.status(403).json({ message: 'Please verify your email before logging in' });
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: "Invalid email or password" });
         }
-
-        const token = jwt.sign(
+        const accessToken = jwt.sign(
             { id: user._id, role: user.role },
             process.env.JWT_ACCESS_SECRET,
-            { expiresIn: process.env.ACCESS_TOKEN_EXPIRES || '15m' }
+            { expiresIn: process.env.ACCESS_TOKEN_EXPIRES }
         );
 
         const refreshToken = jwt.sign(
             { id: user._id },
-            process.env.REFRESH_TOKEN_SECRET,
-            { expiresIn: "7d" }
+            process.env.JWT_REFRESH_SECRET,
+            { expiresIn: process.env.REFRESH_TOKEN_EXPIRES }
         );
+
         user.refreshToken = refreshToken;
         await user.save();
 
-
-
-        res.status(200).json({
-            message: 'Login successful',
-            authtoken: token,
-            refreshtoken: refreshToken,
+        return res.status(200).json({
+            message: "Login successful",
+            accessToken,
+            refreshToken,
             user: {
                 id: user._id,
-                fullName: user.fullName,
                 email: user.email,
-                uniId: user.uniId,
                 role: user.role,
-                isVerified: user.isVerified,
-                profileImageUrl: user.profileImageUrl,
             },
         });
     } catch (error) {
-        console.error('Login Error:', error.message);
-        res.status(500).json({ message: 'Server error during login' });
+        console.error("Login Error:", error.message);
+        return res.status(500).json({ message: "Server error during login" });
     }
 };
 
@@ -170,16 +152,16 @@ export const updateProfile = async (req, res, next) => {
         email = email?.trim();
 
         if (!fullName || !uniId || !email) {
-            return res.status(400).json({ message: 'All fields are required' });
+            return res.status(400).json({ message: "All fields are required" });
         }
 
         if (!validator.isEmail(email)) {
-            return res.status(400).json({ message: 'Invalid email format' });
+            return res.status(400).json({ message: "Invalid email format" });
         }
 
         const user = await User.findById(req.user.id);
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({ message: "User not found" });
         }
 
         const emailChanged = user.email !== email;
@@ -188,14 +170,18 @@ export const updateProfile = async (req, res, next) => {
         if (emailChanged) {
             const emailExists = await User.findOne({ email });
             if (emailExists && emailExists._id.toString() !== req.user.id) {
-                return res.status(409).json({ message: 'Email already in use by another user' });
+                return res
+                    .status(409)
+                    .json({ message: "Email already in use by another user" });
             }
         }
 
         if (uniIdChanged) {
             const uniIdExists = await User.findOne({ uniId });
             if (uniIdExists && uniIdExists._id.toString() !== req.user.id) {
-                return res.status(409).json({ message: 'University ID already in use by another user' });
+                return res
+                    .status(409)
+                    .json({ message: "University ID already in use by another user" });
             }
         }
 
@@ -204,39 +190,35 @@ export const updateProfile = async (req, res, next) => {
         user.email = email;
 
         if (req.files?.profileImage?.[0]) {
-            const profileImage = req.files.profileImage[0];
-            const profileResult = await cloudinary.uploader.upload_stream(
-                { folder: 'profile_images' },
-                (error, result) => {
-                    if (error) throw new Error(error.message);
-                    user.profileImageUrl = result.secure_url;
-                }
+            const profileFile = req.files.profileImage[0];
+            const result = await uploadToCloudinary(
+                profileFile.buffer,
+                "profile_images"
             );
-            profileResult.end(profileImage.buffer);
+            user.profileImageUrl = result.secure_url;
         }
 
         if (req.files?.uniCardImage?.[0]) {
-            const uniCardImage = req.files.uniCardImage[0];
-            const uniCardResult = await cloudinary.uploader.upload_stream(
-                { folder: 'uni_card_images' },
-                (error, result) => {
-                    if (error) throw new Error(error.message);
-                    user.uniCardImageUrl = result.secure_url;
-                }
+            const uniCardFile = req.files.uniCardImage[0];
+            const result = await uploadToCloudinary(
+                uniCardFile.buffer,
+                "uni_card_images"
             );
-            uniCardResult.end(uniCardImage.buffer);
+            user.uniCardImageUrl = result.secure_url;
         }
 
         if (emailChanged) {
             user.isVerified = false;
-            user.verificationToken = crypto.randomBytes(32).toString('hex');
+            user.verificationToken = crypto.randomBytes(32).toString("hex");
             await sendVerificationEmail(user.email, user.verificationToken);
         }
 
         await user.save();
 
         res.status(200).json({
-            message: emailChanged ? 'Profile updated. Please verify your new email.' : 'Profile updated successfully',
+            message: emailChanged
+                ? "Profile updated. Please verify your new email."
+                : "Profile updated successfully",
             user: {
                 id: user._id,
                 fullName: user.fullName,
@@ -249,7 +231,7 @@ export const updateProfile = async (req, res, next) => {
             },
         });
     } catch (error) {
-        console.error('UpdateProfile Error:', error.message);
+        console.error("UpdateProfile Error:", error.message);
         next(error);
     }
 };

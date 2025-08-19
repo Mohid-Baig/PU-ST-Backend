@@ -26,21 +26,25 @@ export const RegisterIssue = async (req, res, next) => {
             return res.status(400).json({ message: 'Invalid JSON format for location' });
         }
 
+        let photo = null;
         const file = req.files?.issueImage?.[0];
-        if (!file) {
-            return res.status(400).json({ message: 'Issue image is required' });
-        }
+        if (file) {
+            const uploadResult = await new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    { folder: 'issue_images' },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                );
+                stream.end(file.buffer);
+            });
 
-        const uploadResult = await new Promise((resolve, reject) => {
-            const stream = cloudinary.uploader.upload_stream(
-                { folder: 'issue_images' },
-                (error, result) => {
-                    if (error) reject(error);
-                    else resolve(result);
-                }
-            );
-            stream.end(file.buffer);
-        });
+            photo = {
+                url: uploadResult.secure_url,
+                public_id: uploadResult.public_id
+            };
+        }
 
         const reportedBy = req.user.id;
 
@@ -49,7 +53,7 @@ export const RegisterIssue = async (req, res, next) => {
             description,
             category,
             location: parsedLocation,
-            photo: uploadResult.secure_url,
+            photo,
             reportedBy
         });
 
@@ -66,6 +70,7 @@ export const RegisterIssue = async (req, res, next) => {
         res.status(500).json({ message: 'Server error during report creation' });
     }
 };
+
 
 
 export const GetAllIssues = async (req, res, next) => {

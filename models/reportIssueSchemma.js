@@ -27,9 +27,10 @@ const reportIssueSchemma = new mongoose.Schema({
         }
     },
     photo: {
-        type: String,
-        required: true,
+        url: { type: String, required: true },
+        public_id: { type: String, required: true }
     },
+
     reportedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
