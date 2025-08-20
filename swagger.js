@@ -1,10 +1,20 @@
-// swagger.js
 import swaggerJSDoc from 'swagger-jsdoc';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const servers = [
+    {
+        url: 'http://localhost:8000',
+        description: 'Local server',
+    },
+    {
+        url: 'https://uni-smart-tracker.onrender.com',
+        description: 'Production server',
+    },
+];
 
 const options = {
     definition: {
@@ -14,11 +24,7 @@ const options = {
             version: '1.0.0',
             description: 'API documentation for PU Smart App (Student Portal)',
         },
-        servers: [
-            {
-                url: 'http://localhost:8000',
-            },
-        ],
+        servers,
         components: {
             securitySchemes: {
                 bearerAuth: {
@@ -31,7 +37,7 @@ const options = {
         security: [{ bearerAuth: [] }],
     },
     apis: [
-        path.join(__dirname, 'routes/*.js'),  // ✅ Correct absolute path
+        path.join(__dirname, 'routes/*.js'),
         path.join(__dirname, 'docs/*.yaml'),
     ],
 };
