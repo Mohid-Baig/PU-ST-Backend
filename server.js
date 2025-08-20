@@ -30,7 +30,16 @@ const SWAGGER_PASSWORD = process.env.SWAGGER_PASSWORD;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use(cors());
+app.use(cors({
+    origin: [
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "https://uni-smart-tracker.onrender.com"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
