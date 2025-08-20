@@ -18,7 +18,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /anonymous:
+ * /api/anonymous:
  *   post:
  *     summary: Create an anonymous confession
  *     tags: [Anonymous Confessions]
@@ -46,7 +46,7 @@ router.post('/', verifyToken, createConfession);
 
 /**
  * @swagger
- * /anonymous:
+ * /api/anonymous:
  *   get:
  *     summary: Get all anonymous confessions
  *     tags: [Anonymous Confessions]
@@ -60,7 +60,7 @@ router.get('/', verifyToken, getAllConfessions);
 
 /**
  * @swagger
- * /anonymous/{id}/like:
+ * /api/anonymous/{id}/like:
  *   put:
  *     summary: Like or unlike a confession
  *     tags: [Anonymous Confessions]
@@ -83,7 +83,7 @@ router.put('/:id/like', verifyToken, likeConfession);
 
 /**
  * @swagger
- * /anonymous/{id}/report:
+ * /api/anonymous/{id}/report:
  *   post:
  *     summary: Report a confession for abuse or inappropriate content
  *     tags: [Anonymous Confessions]

@@ -49,6 +49,8 @@ export const createLostFoundItem = async (req, res) => {
             });
         }
 
+        console.log("Req.user in lostfound:", req.user);
+
         const newItem = new LostFound({
             title,
             description,
@@ -57,7 +59,7 @@ export const createLostFoundItem = async (req, res) => {
             dateLostOrFound: dateLostOrFound ? new Date(dateLostOrFound) : Date.now(),
             location,
             photos,
-            reportedBy: req.user._id,
+            reportedBy: req.user.id,
             contactInfo: contactInfo || '',
             collectionInfo: collectionInfo || '',
             isAnonymous: isAnonymous === 'true',
@@ -65,17 +67,18 @@ export const createLostFoundItem = async (req, res) => {
 
         await newItem.save();
 
+        const populatedItem = await LostFound.findById(newItem._id)
+            .populate('reportedBy', 'fullName uniId ');
+
         res.status(201).json({
             message: "Lost/Found item created successfully.",
-            item: newItem
+            item: populatedItem
         });
     } catch (error) {
-        console.error("Error creating lost/found item:", error);
+        console.error("Error creating lost/found item:", error.message, error.stack);
         res.status(500).json({ message: "Internal server error" });
     }
 };
-
-
 
 export const getAllLostFoundItems = async (req, res) => {
     try {
@@ -83,6 +86,7 @@ export const getAllLostFoundItems = async (req, res) => {
             status: { $ne: 'archived' },
             expiresAt: { $gte: new Date() }
         })
+            .populate('reportedBy', 'fullName uniId ')
             .sort({ createdAt: -1 });
 
         res.status(200).json({
@@ -94,6 +98,7 @@ export const getAllLostFoundItems = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
 
 export const deleteLostFoundItem = async (req, res) => {
     try {

@@ -12,7 +12,7 @@ export const createHelpBoardPost = async (req, res) => {
         const newPost = new HelpBoardPost({
             title,
             message,
-            postedBy: isAnonymous ? null : req.user._id,
+            postedBy: isAnonymous ? null : req.user.id,
             isAnonymous: isAnonymous || false
         });
 
@@ -28,7 +28,7 @@ export const getAllHelpBoardPosts = async (req, res) => {
     try {
         const posts = await HelpBoardPost.find({ status: 'active' })
             .populate('postedBy', 'fullName profileImageUrl')
-            .populate('replies.user', 'fullName profileImageUrl')
+            .populate('replies.user', 'fullName profileImageUrl uniId')
             .sort({ createdAt: -1 })
             .lean();
 

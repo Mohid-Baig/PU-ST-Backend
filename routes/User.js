@@ -15,7 +15,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /auth/register:
+ * /api/auth/register:
  *   post:
  *     summary: Register a new user
  *     tags: [Auth]
@@ -59,7 +59,7 @@ router.post(
 
 /**
  * @swagger
- * /auth/login:
+ * /api/auth/login:
  *   post:
  *     summary: Log in a user
  *     tags: [Auth]
@@ -88,7 +88,7 @@ router.post('/login', loginUser);
 
 /**
  * @swagger
- * /auth/profile:
+ * /api/auth/profile:
  *   get:
  *     summary: Get current user's profile
  *     tags: [Auth]
@@ -104,7 +104,7 @@ router.get('/profile', verifyToken, getMyProfile);
 
 /**
  * @swagger
- * /auth/verify-email/{token}:
+ * /api/auth/verify-email/{token}:
  *   get:
  *     summary: Verify user email
  *     tags: [Auth]
@@ -124,7 +124,7 @@ router.get('/profile', verifyToken, getMyProfile);
 router.get('/verify-email/:token', verifyEmail);
 /**
  * @swagger
- * /auth/refresh:
+ * /api/auth/refresh:
  *   post:
  *     summary: Refresh access token
  *     tags: [Auth]
@@ -148,7 +148,7 @@ router.get('/verify-email/:token', verifyEmail);
 router.post('/refresh', refreshAccessToken);
 /**
  * @swagger
- * /auth/logout:
+ * /api/auth/logout:
  *   post:
  *     summary: Logout user and remove refresh token from database
  *     tags: [Auth]

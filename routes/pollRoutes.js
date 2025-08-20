@@ -20,7 +20,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /polls:
+ * /api/polls:
  *   post:
  *     summary: Create a new poll
  *     tags: [Polls]
@@ -55,7 +55,7 @@ router.post("/", verifyToken, createPoll);
 
 /**
  * @swagger
- * /polls:
+ * /api/polls:
  *   get:
  *     summary: Get all active polls
  *     tags: [Polls]
@@ -69,7 +69,7 @@ router.get("/", verifyToken, getAllPolls);
 
 /**
  * @swagger
- * /polls/{id}:
+ * /api/polls/{id}:
  *   get:
  *     summary: Get a poll by ID
  *     tags: [Polls]
@@ -92,7 +92,7 @@ router.get("/:id", verifyToken, getPollById);
 
 /**
  * @swagger
- * /polls/{id}/vote:
+ * /api/polls/{id}/vote:
  *   post:
  *     summary: Vote on a poll
  *     tags: [Polls]
@@ -126,7 +126,7 @@ router.post("/:id/vote", verifyToken, votePoll);
 
 /**
  * @swagger
- * /polls/{id}:
+ * /api/polls/{id}:
  *   delete:
  *     summary: Delete a poll
  *     tags: [Polls]
@@ -149,7 +149,7 @@ router.delete("/:id", verifyToken, deletePoll);
 
 /**
  * @swagger
- * /polls/{id}/close:
+ * /api/polls/{id}/close:
  *   put:
  *     summary: Close a poll before it expires
  *     tags: [Polls]

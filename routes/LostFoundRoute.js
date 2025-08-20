@@ -20,7 +20,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /lostfound:
+ * /api/lostfound:
  *   post:
  *     summary: Create a new lost or found item
  *     tags: [LostFound]
@@ -73,7 +73,7 @@ router.post('/', verifyToken, upload.fields([{ name: 'lostfoundImage' }]), creat
 
 /**
  * @swagger
- * /lostfound:
+ * /api/lostfound:
  *   get:
  *     summary: Get all active lost/found items
  *     tags: [LostFound]
@@ -87,7 +87,7 @@ router.get('/', verifyToken, getAllLostFoundItems);
 
 /**
  * @swagger
- * /lostfound/{id}:
+ * /api/lostfound/{id}:
  *   delete:
  *     summary: Delete a lost/found item
  *     tags: [LostFound]
@@ -112,7 +112,7 @@ router.delete('/:id', verifyToken, deleteLostFoundItem);
 
 /**
  * @swagger
- * /lostfound/match:
+ * /api/lostfound/match:
  *   put:
  *     summary: Match a lost item with a found item
  *     tags: [LostFound]
@@ -144,7 +144,7 @@ router.put('/match', verifyToken, matchLostAndFoundItems);
 
 /**
  * @swagger
- * /lostfound/{id}/status:
+ * /api/lostfound/{id}/status:
  *   put:
  *     summary: Update the status of a lost/found item
  *     tags: [LostFound]

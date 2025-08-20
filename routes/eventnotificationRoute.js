@@ -17,7 +17,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /events:
+ * /api/events:
  *   post:
  *     summary: Create and send a new event notification (push + email)
  *     tags: [Event Notifications]
@@ -51,7 +51,7 @@ router.post("/", verifyToken, createEventNotification);
 
 /**
  * @swagger
- * /events:
+ * /api/events:
  *   get:
  *     summary: Get all event notifications
  *     tags: [Event Notifications]
@@ -65,7 +65,7 @@ router.get("/", verifyToken, getAllEventNotifications);
 
 /**
  * @swagger
- * /events/{id}:
+ * /api/events/{id}:
  *   get:
  *     summary: Get event notification details by ID
  *     tags: [Event Notifications]

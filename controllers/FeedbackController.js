@@ -14,7 +14,7 @@ export const createFeedback = async (req, res) => {
             description,
             category: category || 'suggestion',
             location: location || '',
-            submittedBy: req.user._id
+            submittedBy: req.user.id
         });
 
         await feedback.save();
@@ -37,7 +37,7 @@ export const getAllFeedback = async (req, res) => {
         }
 
         const feedbacks = await Feedback.find(query)
-            .populate("submittedBy", "fullName email")
+            .populate("submittedBy", "fullName email uniId")
             .sort({ createdAt: -1 });
 
         res.status(200).json({

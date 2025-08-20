@@ -56,7 +56,7 @@ app.use('/api/report', issuesRoutes);
 app.use('/api/lostfound', LostFoundRoute);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/helpboard', helpboardRoutes);
-app.use('/api/vote', votepollRoutes);
+app.use('/api/polls', votepollRoutes);
 app.use('/api/anonymous', anonymousRoutes);
 app.use('/api/events', eventRoutes);
 

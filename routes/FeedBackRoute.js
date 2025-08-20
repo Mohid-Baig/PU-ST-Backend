@@ -13,7 +13,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /feedback:
+ * /api/feedback:
  *   post:
  *     summary: Submit feedback
  *     tags: [Feedback]
@@ -49,7 +49,7 @@ router.post('/', verifyToken, createFeedback);
 
 /**
  * @swagger
- * /feedback:
+ * /api/feedback:
  *   get:
  *     summary: Get all feedback (admin can see all, users see their own)
  *     tags: [Feedback]
@@ -63,7 +63,7 @@ router.get('/', verifyToken, getAllFeedback);
 
 /**
  * @swagger
- * /feedback/{id}:
+ * /api/feedback/{id}:
  *   delete:
  *     summary: Delete a feedback entry
  *     tags: [Feedback]
@@ -88,7 +88,7 @@ router.delete('/:id', verifyToken, deleteFeedback);
 
 /**
  * @swagger
- * /feedback/{id}/status:
+ * /api/feedback/{id}/status:
  *   put:
  *     summary: Update feedback status (admin only)
  *     tags: [Feedback]

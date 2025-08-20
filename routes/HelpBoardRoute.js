@@ -19,7 +19,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /helpboard:
+ * /api/helpboard:
  *   post:
  *     summary: Create a new Help Board post
  *     tags: [HelpBoard]
@@ -51,7 +51,7 @@ router.post('/', verifyToken, createHelpBoardPost);
 
 /**
  * @swagger
- * /helpboard:
+ * /api/helpboard:
  *   get:
  *     summary: Get all active Help Board posts
  *     tags: [HelpBoard]
@@ -65,7 +65,7 @@ router.get('/', verifyToken, getAllHelpBoardPosts);
 
 /**
  * @swagger
- * /helpboard/{id}/like:
+ * /api/helpboard/{id}/like:
  *   put:
  *     summary: Like or unlike a Help Board post
  *     tags: [HelpBoard]
@@ -88,7 +88,7 @@ router.put('/:id/like', verifyToken, likeHelpBoardPost);
 
 /**
  * @swagger
- * /helpboard/{id}/reply:
+ * /api/helpboard/{id}/reply:
  *   post:
  *     summary: Add a reply to a Help Board post
  *     tags: [HelpBoard]
@@ -124,7 +124,7 @@ router.post('/:id/reply', verifyToken, addReplyToHelpBoardPost);
 
 /**
  * @swagger
- * /helpboard/{id}/status:
+ * /api/helpboard/{id}/status:
  *   put:
  *     summary: Update the status of a Help Board post (admin only)
  *     tags: [HelpBoard]
