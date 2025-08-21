@@ -7,12 +7,12 @@ const __dirname = path.dirname(__filename);
 
 const servers = [
     {
-        url: 'http://localhost:8000',
-        description: 'Local server',
-    },
-    {
         url: 'https://uni-smart-tracker.onrender.com',
         description: 'Production server',
+    },
+    {
+        url: 'http://localhost:8000',
+        description: 'Local server',
     },
 ];
 
