@@ -162,6 +162,9 @@ router.post('/refresh', refreshAccessToken);
  */
 
 router.post('/logout', verifyToken, logoutUser);
+router.get('/health', (req, res) => {
+    res.status(200).json({ status: 'Server is awake!' });
+});
 
 
 export default router;
