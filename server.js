@@ -68,6 +68,9 @@ app.use('/api/helpboard', helpboardRoutes);
 app.use('/api/polls', votepollRoutes);
 app.use('/api/anonymous', anonymousRoutes);
 app.use('/api/events', eventRoutes);
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'Server is running!', timestamp: new Date().toISOString() });
+});
 
 app.use(notFound);
 app.use(errorHandler);
