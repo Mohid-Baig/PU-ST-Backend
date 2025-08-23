@@ -93,10 +93,15 @@ export const loginUser = async (req, res) => {
             return res.status(401).json({ message: "Invalid email or password" });
         }
 
+        if (!user.isVerified) {
+            return res.status(403).json({ message: "Account not verified. Please verify your email before login." });
+        }
+
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ message: "Invalid email or password" });
         }
+
         const accessToken = jwt.sign(
             { id: user._id, role: user.role },
             process.env.JWT_ACCESS_SECRET,
@@ -128,6 +133,7 @@ export const loginUser = async (req, res) => {
         return res.status(500).json({ message: "Server error during login" });
     }
 };
+
 
 export const getMyProfile = async (req, res, next) => {
     try {
