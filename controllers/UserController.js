@@ -122,7 +122,7 @@ export const loginUser = async (req, res) => {
             accessToken,
             refreshToken,
             user: {
-                id: user._id,
+                name: user.fullName,
                 email: user.email,
                 role: user.role,
                 isVerified: user.isVerified,
