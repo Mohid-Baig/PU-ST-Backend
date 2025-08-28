@@ -3,6 +3,7 @@ import { RegisterUser, loginUser, getMyProfile, verifyEmail, logoutUser } from '
 import { refreshAccessToken } from '../controllers/auth.js';
 import upload from '../middleware/upload.js';
 import { verifyToken } from '../middleware/verifyToken.js';
+import { forgotPassword, resetPassword } from "../controllers/authController.js";
 
 const router = express.Router();
 
@@ -162,6 +163,9 @@ router.post('/refresh', refreshAccessToken);
  */
 
 router.post('/logout', verifyToken, logoutUser);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password/:token", resetPassword);
+
 
 
 export default router;
