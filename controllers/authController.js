@@ -18,8 +18,9 @@ export const forgotPassword = async (req, res) => {
             { expiresIn: "15m" }
         );
 
-        const resetUrl = `${process.env.BASE_URL}/reset-password?token=${resetToken}`;
-        ;
+        const resetUrl = `${process.env.BASE_URL}/api/auth/reset-password?token=${resetToken}`;
+
+
 
         const transporter = nodemailer.createTransport({
             service: "Gmail",
