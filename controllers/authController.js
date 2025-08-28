@@ -20,7 +20,7 @@ export const forgotPassword = async (req, res) => {
 
         const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
-        const transporter = nodemailer.createTransporter({
+        const transporter = nodemailer.createTransport({
             service: "Gmail",
             auth: {
                 user: process.env.SMTP_EMAIL,
