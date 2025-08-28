@@ -49,19 +49,41 @@ export const resetPassword = async (req, res) => {
     const { token } = req.params;
     const { newPassword } = req.body;
 
+    console.log("🔧 Reset Password Attempt:");
+    console.log("Token:", token);
+    console.log("New Password Received:", newPassword);
+
     try {
         const decoded = jwt.verify(token, process.env.JWT_RESET_SECRET);
+        console.log("Decoded Token:", decoded);
 
         const user = await User.findById(decoded.id);
-        if (!user) return res.status(404).json({ message: "User not found" });
+        if (!user) {
+            console.log("❌ User not found with ID:", decoded.id);
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        console.log("👤 User Found:", user.email);
 
         const saltRounds = 10;
-        user.password = await bcrypt.hash(newPassword, saltRounds);
-        await user.save();
+        const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+        console.log("🔐 Hashed Password:", hashedPassword);
+
+        user.password = hashedPassword;
+
+        const savedUser = await user.save();
+        console.log("✅ User saved successfully:", savedUser.email);
 
         res.status(200).json({ message: "✅ Password reset successful. You can now log in." });
+
     } catch (err) {
-        console.error("Reset password error:", err.message);
+        console.error("❌ Reset password error:", err.message);
+        console.error("Error details:", err);
+
+        if (err.name === 'ValidationError') {
+            console.error("Validation Errors:", err.errors);
+        }
+
         res.status(400).json({ message: "❌ Invalid or expired token" });
     }
 };
