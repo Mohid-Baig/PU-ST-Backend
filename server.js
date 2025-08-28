@@ -43,8 +43,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(
-    '/puTracker-api-docs',
+app.use('/puTracker-api-docs',
     (req, res, next) => {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
         res.setHeader('Pragma', 'no-cache');
@@ -69,12 +68,8 @@ app.use('/api/helpboard', helpboardRoutes);
 app.use('/api/polls', votepollRoutes);
 app.use('/api/anonymous', anonymousRoutes);
 app.use('/api/events', eventRoutes);
-
 app.get('/api/health', (req, res) => {
-    res.status(200).json({
-        status: 'Server is running!',
-        timestamp: new Date().toISOString(),
-    });
+    res.status(200).json({ status: 'Server is running!', timestamp: new Date().toISOString() });
 });
 
 app.use(notFound);
@@ -84,7 +79,7 @@ const startServer = async () => {
     try {
         await connectDB();
         app.listen(PORT, () => {
-            console.log(`✅ Server running on port ${PORT}`);
+            console.log(`✅ Server running at http://localhost:${PORT}`);
         });
     } catch (error) {
         console.error('❌ Failed to start server:', error.message);
