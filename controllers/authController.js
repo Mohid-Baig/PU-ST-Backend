@@ -48,10 +48,12 @@ export const forgotPassword = async (req, res) => {
 
 export const resetPassword = async (req, res) => {
     try {
-        const { token } = req.params;
+        const { token } = req.query; // 🔹 FIXED: read from query, not params
         const { newPassword } = req.body;
 
-        if (!newPassword) return res.status(400).json({ message: "New password is required" });
+        if (!newPassword) {
+            return res.status(400).json({ message: "New password is required" });
+        }
 
         let decoded;
         try {
@@ -79,3 +81,4 @@ export const resetPassword = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
+
