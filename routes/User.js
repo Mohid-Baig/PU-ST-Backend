@@ -185,7 +185,7 @@ router.post('/logout', verifyToken, logoutUser);
  *       404:
  *         description: User not found
  */
-router.post("/forgot-password", forgotPassword);
+router.post("/forgot-password", forgotPassword); // ✅ This is correct
 
 /**
  * @swagger
@@ -216,17 +216,6 @@ router.post("/forgot-password", forgotPassword);
  *         description: Invalid or expired token
  */
 router.post("/reset-password/:token", resetPassword);
-router.get("/reset-password/:token", (req, res) => {
-    const { token } = req.params;
-
-    try {
-        jwt.verify(token, process.env.JWT_SECRET);
-        res.status(200).send("✅ Your reset link is valid. Now send your new password using POST request.");
-    } catch (err) {
-        res.status(400).send("❌ Invalid or expired reset link.");
-    }
-});
-
 
 
 export default router;
