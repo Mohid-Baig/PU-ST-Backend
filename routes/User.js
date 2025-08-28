@@ -4,6 +4,7 @@ import { refreshAccessToken } from '../controllers/auth.js';
 import upload from '../middleware/upload.js';
 import { verifyToken } from '../middleware/verifyToken.js';
 import { forgotPassword, resetPassword } from "../controllers/authController.js";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
@@ -163,8 +164,68 @@ router.post('/refresh', refreshAccessToken);
  */
 
 router.post('/logout', verifyToken, logoutUser);
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Request a password reset link
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset email sent
+ *       404:
+ *         description: User not found
+ */
 router.post("/forgot-password", forgotPassword);
+
+/**
+ * @swagger
+ * /api/auth/reset-password/{token}:
+ *   post:
+ *     summary: Reset user password using a token
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: path
+ *         name: token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Password reset token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *       400:
+ *         description: Invalid or expired token
+ */
 router.post("/reset-password/:token", resetPassword);
+router.get("/reset-password/:token", (req, res) => {
+    const { token } = req.params;
+
+    try {
+        jwt.verify(token, process.env.JWT_SECRET);
+        res.status(200).send("✅ Your reset link is valid. Now send your new password using POST request.");
+    } catch (err) {
+        res.status(400).send("❌ Invalid or expired reset link.");
+    }
+});
 
 
 

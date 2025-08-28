@@ -14,13 +14,11 @@ export const forgotPassword = async (req, res) => {
 
         const resetToken = jwt.sign(
             { id: user._id },
-            process.env.JWT_RESET_SECRET,
+            process.env.JWT_RESET_SECRET,   // 🔹 use RESET secret
             { expiresIn: "15m" }
         );
 
-        const resetUrl = `${process.env.BASE_URL}/api/auth/reset-password?token=${resetToken}`;
-
-
+        const resetUrl = `${process.env.BASE_URL}/api/auth/reset-password/${resetToken}`;
 
         const transporter = nodemailer.createTransport({
             service: "Gmail",
@@ -48,38 +46,21 @@ export const forgotPassword = async (req, res) => {
 };
 
 export const resetPassword = async (req, res) => {
+    const { token } = req.params; // 🔹 token from URL
+    const { newPassword } = req.body;
+
     try {
-        const { token } = req.query; // 🔹 FIXED: read from query, not params
-        const { newPassword } = req.body;
-
-        if (!newPassword) {
-            return res.status(400).json({ message: "New password is required" });
-        }
-
-        let decoded;
-        try {
-            decoded = jwt.verify(token, process.env.JWT_RESET_SECRET);
-        } catch (err) {
-            return res.status(400).json({ message: "Invalid or expired token" });
-        }
+        // 🔹 Verify with the SAME secret you used above
+        const decoded = jwt.verify(token, process.env.JWT_RESET_SECRET);
 
         const user = await User.findById(decoded.id);
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        user.password = hashedPassword;
-
+        user.password = await bcrypt.hash(newPassword, 10);
         await user.save();
 
-        return res.status(200).send(`
-            <div style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;">
-              <h2 style="color:green;">✅ Password reset successful! You can now log in.</h2>
-            </div>
-          `);
-
-    } catch (error) {
-        console.error("Reset password error:", error.message);
-        res.status(500).json({ message: "Server error" });
+        res.status(200).json({ message: "✅ Password reset successful. You can now log in." });
+    } catch (err) {
+        res.status(400).json({ message: "❌ Invalid or expired token" });
     }
 };
-
