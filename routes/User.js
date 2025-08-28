@@ -216,6 +216,58 @@ router.post("/forgot-password", forgotPassword); // ✅ This is correct
  *         description: Invalid or expired token
  */
 router.post("/reset-password/:token", resetPassword);
+router.get("/reset-password/:token", (req, res) => {
+    const { token } = req.params;
+
+    try {
+        jwt.verify(token, process.env.JWT_RESET_SECRET);
+
+        res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Reset Password - Uni Smart Tracker</title>
+                <style>
+                    body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
+                    form { display: flex; flex-direction: column; gap: 15px; }
+                    input, button { padding: 12px; font-size: 16px; }
+                    button { background-color: #007bff; color: white; border: none; cursor: pointer; }
+                    button:hover { background-color: #0056b3; }
+                </style>
+            </head>
+            <body>
+                <h2>Reset Your Password</h2>
+                <form action="/api/auth/reset-password/${token}" method="POST">
+                    <label for="newPassword">New Password:</label>
+                    <input type="password" id="newPassword" name="newPassword" required minlength="6">
+                    <button type="submit">Reset Password</button>
+                </form>
+                
+                <script>
+                    // Simple client-side validation
+                    document.querySelector('form').addEventListener('submit', function(e) {
+                        const password = document.getElementById('newPassword').value;
+                        if (password.length < 6) {
+                            e.preventDefault();
+                            alert('Password must be at least 6 characters long');
+                        }
+                    });
+                </script>
+            </body>
+            </html>
+        `);
+
+    } catch (err) {
+        res.status(400).send(`
+            <h3>Error</h3>
+            <p>This reset link is invalid or has expired.</p>
+            <p>Please request a new password reset link.</p>
+        `);
+    }
+});
+
+// Keep your existing POST route - this handles the form submission
+router.post("/reset-password/:token", resetPassword);
 
 
 export default router;
