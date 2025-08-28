@@ -258,7 +258,11 @@ export const verifyEmail = async (req, res, next) => {
         user.verificationToken = null;
         await user.save();
 
-        res.status(200).json({ message: 'Email verified successfully' });
+        res.status(200).send(`
+            <div style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;">
+              <h2 style="color:green;">✅ Email verified successfully! You can now log in.</h2>
+            </div>
+          `);
     } catch (error) {
         console.error('VerifyEmail Error:', error.message);
         res.status(500).json({ message: 'Server error during verification' });
