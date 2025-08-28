@@ -69,10 +69,11 @@ export const resetPassword = async (req, res) => {
         const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
         console.log("🔐 Hashed Password:", hashedPassword);
 
-        user.password = hashedPassword;
+        await User.findByIdAndUpdate(decoded.id, {
+            password: hashedPassword
+        });
 
-        const savedUser = await user.save();
-        console.log("✅ User saved successfully:", savedUser.email);
+        console.log("✅ Password updated successfully for:", user.email);
 
         res.status(200).json({ message: "✅ Password reset successful. You can now log in." });
 
