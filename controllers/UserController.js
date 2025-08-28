@@ -46,14 +46,11 @@ export const RegisterUser = async (req, res) => {
             uniCardImageUrl = result.secure_url;
         }
 
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
-
         const user = await User.create({
             fullName,
             uniId,
             email,
-            password: hashedPassword,
+            password,
             role,
             profileImageUrl,
             uniCardImageUrl,
