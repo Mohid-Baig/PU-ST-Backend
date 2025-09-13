@@ -1,5 +1,5 @@
 import express from 'express';
-import { RegisterUser, loginUser, getMyProfile, verifyEmail, logoutUser } from '../controllers/UserController.js';
+import { RegisterUser, loginUser, getMyProfile, verifyEmail, logoutUser, updateProfile } from '../controllers/UserController.js';
 import { refreshAccessToken } from '../controllers/auth.js';
 import upload from '../middleware/upload.js';
 import { verifyToken } from '../middleware/verifyToken.js';
@@ -103,6 +103,59 @@ router.post('/login', loginUser);
  *         description: Unauthorized
  */
 router.get('/profile', verifyToken, getMyProfile);
+
+/**
+ * @swagger
+ * /api/auth/profile:
+ * put:
+ * summary: Update the current user's profile
+ * tags: [Auth]
+ * security:
+ * - bearerAuth: []
+ * requestBody:
+ * required: true
+ * content:
+ * multipart/form-data:
+ * schema:
+ * type: object
+ * properties:
+ * fullName:
+ * type: string
+ * description: The user's updated full name.
+ * email:
+ * type: string
+ * format: email
+ * description: The user's updated email address.
+ * uniId:
+ * type: string
+ * description: The user's updated university ID.
+ * profileImage:
+ * type: string
+ * format: binary
+ * description: The user's new profile picture.
+ * uniCardImage:
+ * type: string
+ * format: binary
+ * description: The user's new university card image.
+ * responses:
+ * 200:
+ * description: Profile updated successfully
+ * 400:
+ * description: Bad request (e.g., validation error)
+ * 401:
+ * description: Unauthorized (missing or invalid token)
+ * 500:
+ * description: Server error
+ */
+router.put(
+    '/profile',
+    verifyToken,
+    upload.fields([
+        { name: 'profileImage', maxCount: 1 },
+        { name: 'uniCardImage', maxCount: 1 },
+    ]),
+    updateProfile
+);
 
 /**
  * @swagger
@@ -224,32 +277,110 @@ router.get("/reset-password/:token", (req, res) => {
 
         res.send(`
             <!DOCTYPE html>
-            <html>
+            <html lang="en">
             <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Reset Password - Uni Smart Tracker</title>
                 <style>
-                    body { font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; }
-                    form { display: flex; flex-direction: column; gap: 15px; }
-                    input, button { padding: 12px; font-size: 16px; }
-                    button { background-color: #007bff; color: white; border: none; cursor: pointer; }
-                    button:hover { background-color: #0056b3; }
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                        background-color: #f0f2f5;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
+                        margin: 0;
+                    }
+                    .container {
+                        background-color: #ffffff;
+                        padding: 40px;
+                        border-radius: 8px;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                        max-width: 400px;
+                        width: 100%;
+                        text-align: center;
+                    }
+                    h2 {
+                        color: #1c1e21;
+                        margin-bottom: 20px;
+                        font-size: 24px;
+                    }
+                    p {
+                        color: #606770;
+                        margin-bottom: 20px;
+                        font-size: 16px;
+                    }
+                    form {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 15px;
+                    }
+                    label {
+                        text-align: left;
+                        font-weight: 600;
+                        color: #1c1e21;
+                    }
+                    input[type="password"] {
+                        width: 90%;
+                        padding: 12px 10px;
+                        border: 1px solid #dddfe2;
+                        border-radius: 6px;
+                        font-size: 16px;
+                    }
+                    button {
+                        background-color: #1877f2;
+                        color: #ffffff;
+                        font-size: 18px;
+                        font-weight: 700;
+                        padding: 12px;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        transition: background-color 0.3s ease;
+                    }
+                    button:hover {
+                        background-color: #166fe5;
+                    }
+                    .error-message {
+                        color: #fa383e;
+                        margin-top: 10px;
+                        display: none;
+                        font-size: 14px;
+                        text-align: left;
+                    }
+                    .expired-link {
+                        text-align: center;
+                        color: #fa383e;
+                        font-size: 18px;
+                        font-weight: bold;
+                    }
                 </style>
             </head>
             <body>
-                <h2>Reset Your Password</h2>
-                <form action="/api/auth/reset-password/${token}" method="POST">
-                    <label for="newPassword">New Password:</label>
-                    <input type="password" id="newPassword" name="newPassword" required minlength="6">
-                    <button type="submit">Reset Password</button>
-                </form>
+                <div class="container">
+                    <h2>Reset Your Password</h2>
+                    <p>Enter and confirm your new password below.</p>
+                    <form id="resetForm" action="/api/auth/reset-password/${token}" method="POST">
+                        <label for="newPassword">New Password:</label>
+                        <input type="password" id="newPassword" name="newPassword" required minlength="6" placeholder="Enter new password">
+                        <span id="passwordError" class="error-message">Password must be at least 6 characters.</span>
+                        <button type="submit">Reset Password</button>
+                    </form>
+                </div>
                 
                 <script>
-                    // Simple client-side validation
-                    document.querySelector('form').addEventListener('submit', function(e) {
-                        const password = document.getElementById('newPassword').value;
-                        if (password.length < 6) {
+                    const form = document.getElementById('resetForm');
+                    const passwordInput = document.getElementById('newPassword');
+                    const passwordError = document.getElementById('passwordError');
+
+                    form.addEventListener('submit', function(e) {
+                        if (passwordInput.value.length < 6) {
                             e.preventDefault();
-                            alert('Password must be at least 6 characters long');
+                            passwordError.style.display = 'block';
+                            passwordInput.focus();
+                        } else {
+                            passwordError.style.display = 'none';
                         }
                     });
                 </script>
@@ -259,14 +390,16 @@ router.get("/reset-password/:token", (req, res) => {
 
     } catch (err) {
         res.status(400).send(`
-            <h3>Error</h3>
-            <p>This reset link is invalid or has expired.</p>
-            <p>Please request a new password reset link.</p>
+            <div style="font-family: Arial, sans-serif; text-align: center; margin-top: 50px;">
+                <h3 style="color: #fa383e;">Error</h3>
+                <p style="color: #606770;">This reset link is invalid or has expired.</p>
+                <p style="color: #606770;">Please request a new password reset link.</p>
+            </div>
         `);
     }
 });
 
-// Keep your existing POST route - this handles the form submission
+
 router.post("/reset-password/:token", resetPassword);
 
 
