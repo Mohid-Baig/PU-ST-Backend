@@ -106,7 +106,7 @@ router.get('/profile', verifyToken, getMyProfile);
 
 /**
  * @swagger
- * /api/auth/profile:
+ * /api/auth/update-profile:
  * put:
  * summary: Update the current user's profile
  * tags: [Auth]
@@ -148,7 +148,7 @@ router.get('/profile', verifyToken, getMyProfile);
  * description: Server error
  */
 router.put(
-    '/profile',
+    '/update-profile',
     verifyToken,
     upload.fields([
         { name: 'profileImage', maxCount: 1 },
