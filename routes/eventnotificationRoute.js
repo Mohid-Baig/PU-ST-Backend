@@ -3,7 +3,8 @@ import { verifyToken } from "../middleware/verifyToken.js";
 import {
     createEventNotification,
     getAllEventNotifications,
-    getEventNotificationById
+    getEventNotificationById,
+    registerDeviceToken,
 } from "../controllers/eventNotificationController.js";
 
 const router = express.Router();
@@ -85,5 +86,40 @@ router.get("/", verifyToken, getAllEventNotifications);
  *         description: Event not found
  */
 router.get("/:id", verifyToken, getEventNotificationById);
+/**
+ * @swagger
+ * /api/events/register-device:
+ *   post:
+ *     summary: Register FCM token for the logged-in user
+ *     tags: [Event Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 example: "cGVSWVUGQ0WWCt3PRMYGIo:APA91b..."
+ *                 description: FCM token retrieved from the device
+ *     responses:
+ *       200:
+ *         description: Token registered successfully
+ *       400:
+ *         description: Token is missing
+ *       401:
+ *         description: Unauthorized (user not logged in)
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
+
+router.post("/register-device", verifyToken, registerDeviceToken);
 
 export default router;

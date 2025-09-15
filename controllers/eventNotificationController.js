@@ -3,6 +3,32 @@ import { sendNotification } from "../services/notificationService.js";
 import nodemailer from "nodemailer";
 import User from "../models/userSchemma.js";
 
+export const registerDeviceToken = async (req, res) => {
+    try {
+        const userId = req.user?._id;       // auth middleware must set req.user
+        const { token } = req.body;
+
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        if (!token) return res.status(400).json({ message: "Token is required" });
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // user.fcmToken = token;
+
+        user.fcmTokens = user.fcmTokens || [];
+        if (!user.fcmTokens.includes(token)) user.fcmTokens.push(token);
+
+        await user.save();
+
+        res.status(200).json({ message: "Token registered successfully" });
+    } catch (err) {
+        console.error("registerDeviceToken error:", err);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+
 export const createEventNotification = async (req, res) => {
     try {
         const { title, description } = req.body;
@@ -22,13 +48,17 @@ export const createEventNotification = async (req, res) => {
         });
         await event.save();
 
-        const students = await User.find({ role: "student" }, "fcmToken email");
+        const students = await User.find({ role: "student" }, "fcmToken fcmTokens email");
 
         for (const student of students) {
-            if (student.fcmToken) {
+            const tokens = student.fcmTokens?.length
+                ? student.fcmTokens
+                : (student.fcmToken ? [student.fcmToken] : []);
+
+            for (const token of tokens) {
                 await sendNotification({
-                    token: student.fcmToken,
-                    title: title,
+                    token,
+                    title,
                     body: "Tap for more info",
                     data: {
                         type: "event",
@@ -65,6 +95,7 @@ export const createEventNotification = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
 
 
 export const getAllEventNotifications = async (req, res) => {
