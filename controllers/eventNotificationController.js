@@ -11,7 +11,7 @@ export const registerDeviceToken = async (req, res) => {
             headers: req.headers.authorization
         });
 
-        const userId = req.user?._id;
+        const userId = req.user?.id || req.user?._id;;
         const { token } = req.body;
 
         if (!req.user) {
@@ -40,7 +40,7 @@ export const registerDeviceToken = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-        console.log("Found user:", user._id, "Current tokens:", user.fcmTokens?.length || 0);
+        console.log("Found user:", user._id || user.id, "Current tokens:", user.fcmTokens?.length || 0);
 
         if (!user.fcmTokens) {
             user.fcmTokens = [];
@@ -94,7 +94,7 @@ export const createEventNotification = async (req, res) => {
         const event = new EventNotification({
             title,
             description,
-            createdBy: req.user._id
+            createdBy: req.user._id || req.user.id,
         });
         await event.save();
 
