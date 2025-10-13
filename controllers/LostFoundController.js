@@ -7,86 +7,11 @@ import cloudinary from '../config/cloudinary.js';
 import { uploadToCloudinary } from "../utils/cloudinaryUpload.js";
 
 
-// export const createLostFoundItem = async (req, res) => {
-//     try {
-//         const {
-//             title,
-//             description,
-//             type,
-//             category,
-//             dateLostOrFound,
-//             location,
-//             contactInfo,
-//             collectionInfo,
-//             isAnonymous
-//         } = req.body;
-
-//         if (!title || !description || !type || !location) {
-//             return res.status(400).json({ message: "Title, description, type, and location are required." });
-//         }
-
-//         if (!['lost', 'found'].includes(type)) {
-//             return res.status(400).json({ message: "Type must be either 'lost' or 'found'." });
-//         }
-
-//         const files = req.files?.lostfoundImage || [];
-//         const photos = [];
-
-//         for (const file of files) {
-//             const uploadResult = await new Promise((resolve, reject) => {
-//                 const stream = cloudinary.uploader.upload_stream(
-//                     { folder: 'lostfound_images' },
-//                     (error, result) => {
-//                         if (error) reject(error);
-//                         else resolve(result);
-//                     }
-//                 );
-//                 stream.end(file.buffer);
-//             });
-//             photos.push({
-//                 url: uploadResult.secure_url,
-//                 public_id: uploadResult.public_id
-//             });
-//         }
-
-//         console.log("Req.user in lostfound:", req.user);
-
-//         const newItem = new LostFound({
-//             title,
-//             description,
-//             type,
-//             category: category || 'other',
-//             dateLostOrFound: dateLostOrFound ? new Date(dateLostOrFound) : Date.now(),
-//             location,
-//             photos,
-//             reportedBy: req.user.id,
-//             contactInfo: contactInfo || '',
-//             collectionInfo: collectionInfo || '',
-//             isAnonymous: isAnonymous === 'true',
-//         });
-
-//         await newItem.save();
-
-//         const populatedItem = await LostFound.findById(newItem._id)
-//             .populate('reportedBy', 'fullName uniId ');
-
-//         res.status(201).json({
-//             message: "Lost/Found item created successfully.",
-//             item: populatedItem
-//         });
-//     } catch (error) {
-//         console.error("Error creating lost/found item:", error.message, error.stack);
-//         res.status(500).json({ message: "Internal server error" });
-//     }
-// };
 
 export const createLostFoundItem = async (req, res) => {
-    console.log("=== CREATE LOST/FOUND ITEM START ===");
 
     try {
-        console.log("➡️ Incoming body:", req.body);
-        console.log("➡️ Incoming files:", req.files);
-        console.log("➡️ Incoming user:", req.user);
+
 
         const {
             title,
@@ -101,17 +26,14 @@ export const createLostFoundItem = async (req, res) => {
         } = req.body;
 
         if (!title || !description || !type || !location) {
-            console.log("❌ Missing required fields");
             return res.status(400).json({ message: "Title, description, type, and location are required." });
         }
 
         if (!['lost', 'found'].includes(type)) {
-            console.log("❌ Invalid type:", type);
             return res.status(400).json({ message: "Type must be either 'lost' or 'found'." });
         }
 
         if (!req.user || (!req.user.id && !req.user._id)) {
-            console.log("❌ Unauthorized - req.user is missing:", req.user);
             return res.status(401).json({ message: "Unauthorized: user not found in request." });
         }
 
@@ -123,12 +45,9 @@ export const createLostFoundItem = async (req, res) => {
         const photos = [];
 
         if (files.length > 0) {
-            console.log("🕐 Starting Cloudinary uploads...");
             for (const [index, file] of files.entries()) {
-                console.log(`⏳ Uploading image #${index + 1}...`);
 
                 if (!file.buffer) {
-                    console.error(`❌ File buffer missing for image #${index + 1}`);
                     continue;
                 }
 
@@ -138,10 +57,10 @@ export const createLostFoundItem = async (req, res) => {
                             { folder: 'lostfound_images' },
                             (error, result) => {
                                 if (error) {
-                                    console.error("❌ Cloudinary upload error:", error);
+                                    console.error(" Cloudinary upload error:", error);
                                     reject(error);
                                 } else {
-                                    console.log("✅ Cloudinary upload success:", result.secure_url);
+                                    console.log(" Cloudinary upload success:", result.secure_url);
                                     resolve(result);
                                 }
                             }
@@ -154,20 +73,19 @@ export const createLostFoundItem = async (req, res) => {
                         public_id: uploadResult.public_id
                     });
                 } catch (uploadErr) {
-                    console.error("❌ Upload failed:", uploadErr);
+                    console.error(" Upload failed:", uploadErr);
                 }
             }
         } else {
-            console.log("ℹ️ No files uploaded for this item.");
+            console.log(" No files uploaded for this item.");
         }
 
         let parsedDate = dateLostOrFound ? new Date(dateLostOrFound) : new Date();
         if (isNaN(parsedDate)) {
-            console.log("❌ Invalid date provided:", dateLostOrFound);
+            console.log(" Invalid date provided:", dateLostOrFound);
             return res.status(400).json({ message: "Invalid date format." });
         }
 
-        console.log("🧩 Creating LostFound item...");
         const newItem = new LostFound({
             title,
             description,
@@ -182,25 +100,21 @@ export const createLostFoundItem = async (req, res) => {
             isAnonymous: isAnonymous === 'true' || isAnonymous === true,
         });
 
-        console.log("🧾 New item data (before save):", newItem);
 
         await newItem.save();
-        console.log("✅ Saved to database successfully.");
 
         const populatedItem = await LostFound.findById(newItem._id)
             .populate('reportedBy', 'fullName uniId');
 
-        console.log("✅ Populated item fetched successfully.");
 
         res.status(201).json({
             message: "Lost/Found item created successfully.",
             item: populatedItem
         });
 
-        console.log("=== CREATE LOST/FOUND ITEM END ===");
 
     } catch (error) {
-        console.error("🔥 ERROR in createLostFoundItem:");
+        console.error(" ERROR in createLostFoundItem:");
         console.error("Message:", error.message);
         console.error("Stack:", error.stack);
 
