@@ -125,11 +125,17 @@ export const createLostFoundItem = async (req, res) => {
 
 export const getAllLostFoundItems = async (req, res) => {
     try {
-        const items = await LostFound.find({
+        const filter = {
             status: { $ne: 'archived' },
             expiresAt: { $gte: new Date() }
-        })
-            .populate('reportedBy', 'fullName uniId ')
+        };
+
+        if (req.query.mine === 'true' && req.user) {
+            filter.reportedBy = req.user.id || req.user._id;
+        }
+
+        const items = await LostFound.find(filter)
+            .populate('reportedBy', 'fullName uniId')
             .sort({ createdAt: -1 });
 
         res.status(200).json({
@@ -141,6 +147,7 @@ export const getAllLostFoundItems = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
 
 
 export const deleteLostFoundItem = async (req, res) => {
