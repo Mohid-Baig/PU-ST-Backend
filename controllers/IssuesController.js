@@ -1,64 +1,121 @@
 import ReportIssue from "../models/reportIssueSchemma.js";
 import User from '../models/userSchemma.js';
-
 import cloudinary from '../config/cloudinary.js';
 
 export const RegisterIssue = async (req, res, next) => {
     try {
+        console.log('=== RegisterIssue Request ===');
+        console.log('Body:', req.body);
+        console.log('Files:', req.files);
+
         const { title, description, category, location } = req.body;
 
         if (!title || !description || !category || !location) {
+            console.log('Missing fields:', { title: !!title, description: !!description, category: !!category, location: !!location });
             return res.status(400).json({ message: 'All fields are required' });
         }
 
         let parsedLocation;
         try {
-            parsedLocation = JSON.parse(location);
+            parsedLocation = typeof location === 'string' ? JSON.parse(location) : location;
+
+            console.log('Parsed location:', parsedLocation);
+
             if (
                 !parsedLocation ||
                 parsedLocation.type !== 'Point' ||
                 !Array.isArray(parsedLocation.coordinates) ||
-                parsedLocation.coordinates.length !== 2
+                parsedLocation.coordinates.length !== 2 ||
+                typeof parsedLocation.coordinates[0] !== 'number' ||
+                typeof parsedLocation.coordinates[1] !== 'number'
             ) {
-                return res.status(400).json({ message: 'Invalid location format' });
+                console.log('Invalid location format:', parsedLocation);
+                return res.status(400).json({
+                    message: 'Invalid location format. Expected: {type: "Point", coordinates: [longitude, latitude]}'
+                });
             }
         } catch (err) {
-            return res.status(400).json({ message: 'Invalid JSON format for location' });
+            console.error('Location parsing error:', err);
+            return res.status(400).json({
+                message: 'Invalid JSON format for location',
+                error: err.message
+            });
         }
 
         let photo = null;
         const file = req.files?.issueImage?.[0];
+
         if (file) {
-            const uploadResult = await new Promise((resolve, reject) => {
-                const stream = cloudinary.uploader.upload_stream(
-                    { folder: 'issue_images' },
-                    (error, result) => {
-                        if (error) reject(error);
-                        else resolve(result);
-                    }
-                );
-                stream.end(file.buffer);
+            console.log('Uploading image to Cloudinary...');
+            console.log('File details:', {
+                mimetype: file.mimetype,
+                size: file.size,
+                originalname: file.originalname
             });
 
-            photo = {
-                url: uploadResult.secure_url,
-                public_id: uploadResult.public_id
-            };
+            try {
+                const uploadResult = await new Promise((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream(
+                        {
+                            folder: 'issue_images',
+                            resource_type: 'auto',
+                            transformation: [
+                                { width: 1000, height: 1000, crop: 'limit' },
+                                { quality: 'auto' }
+                            ]
+                        },
+                        (error, result) => {
+                            if (error) {
+                                console.error('Cloudinary upload error:', error);
+                                reject(error);
+                            } else {
+                                console.log('Cloudinary upload success:', result.secure_url);
+                                resolve(result);
+                            }
+                        }
+                    );
+                    stream.end(file.buffer);
+                });
+
+                photo = {
+                    url: uploadResult.secure_url,
+                    public_id: uploadResult.public_id
+                };
+            } catch (uploadError) {
+                console.error('Image upload failed:', uploadError);
+                return res.status(500).json({
+                    message: 'Failed to upload image. Please try again.',
+                    error: uploadError.message
+                });
+            }
+        }
+
+        if (!req.user || !req.user.id) {
+            console.error('User not authenticated');
+            return res.status(401).json({ message: 'User not authenticated' });
         }
 
         const reportedBy = req.user.id;
+        console.log('Creating issue for user:', reportedBy);
 
-        const issue = await ReportIssue.create({
-            title,
-            description,
+        const issueData = {
+            title: title.trim(),
+            description: description.trim(),
             category,
             location: parsedLocation,
             photo,
             reportedBy
-        });
+        };
+
+        console.log('Issue data to create:', issueData);
+
+        const issue = await ReportIssue.create(issueData);
+        console.log('Issue created with ID:', issue._id);
 
         const populatedIssue = await ReportIssue.findById(issue._id)
-            .populate('reportedBy', 'fullName email');
+            .populate('reportedBy', 'fullName email profileImageUrl');
+
+        console.log('Issue creation successful');
 
         res.status(201).json({
             message: 'Report submitted successfully',
@@ -66,12 +123,30 @@ export const RegisterIssue = async (req, res, next) => {
         });
 
     } catch (err) {
-        console.error('RegisterIssue Error:', err.message);
-        res.status(500).json({ message: 'Server error during report creation' });
+        console.error('=== RegisterIssue Error ===');
+        console.error('Error name:', err.name);
+        console.error('Error message:', err.message);
+        console.error('Stack trace:', err.stack);
+
+        if (err.name === 'ValidationError') {
+            return res.status(400).json({
+                message: 'Validation error',
+                errors: Object.values(err.errors).map(e => e.message)
+            });
+        }
+
+        if (err.name === 'MongoError' || err.name === 'MongoServerError') {
+            return res.status(500).json({
+                message: 'Database error. Please try again later.'
+            });
+        }
+
+        res.status(500).json({
+            message: 'Server error during report creation',
+            error: process.env.NODE_ENV === 'development' ? err.message : undefined
+        });
     }
 };
-
-
 
 export const GetAllIssues = async (req, res, next) => {
     try {
@@ -88,6 +163,7 @@ export const GetAllIssues = async (req, res, next) => {
         res.status(500).json({ message: 'Server error while fetching issues' });
     }
 };
+
 export const getIssuesByUniId = async (req, res, next) => {
     try {
         const { uniId } = req.params;
@@ -102,11 +178,10 @@ export const getIssuesByUniId = async (req, res, next) => {
             .populate('reportedBy', 'fullName email uniId')
             .sort({ createdAt: -1 });
 
-        if (issues.length === 0) {
-            return res.status(404).json({ message: 'No issues reported by this user' });
-        }
-
-        res.status(200).json({ issues });
+        res.status(200).json({
+            total: issues.length,
+            issues
+        });
 
     } catch (error) {
         console.error('getIssuesByUniId Error:', error.message);
@@ -154,22 +229,24 @@ export const IssuesStatus = async (req, res, next) => {
     }
 };
 
-
 export const GetMyIssues = async (req, res, next) => {
     try {
+        console.log('GetMyIssues called for user:', req.user.id);
+
         const myIssues = await ReportIssue.find({ reportedBy: req.user.id })
             .populate('reportedBy', 'fullName email profileImageUrl')
             .sort({ createdAt: -1 });
-        if (!myIssues || myIssues.length === 0) {
-            return res.status(404).json({ message: 'No issues reported by you' });
-        }
+
+        console.log('Found issues:', myIssues.length);
+
         res.status(200).json({
             total: myIssues.length,
             issues: myIssues
         });
-    }
-    catch (err) {
+
+    } catch (err) {
         console.error('GetMyIssues Error:', err.message);
+        console.error('Stack:', err.stack);
         res.status(500).json({ message: 'Server error while fetching your issues' });
     }
 }
