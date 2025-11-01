@@ -35,10 +35,11 @@ export const getAllHelpBoardPosts = async (req, res) => {
         const enrichedPosts = posts.map(post => ({
             ...post,
             likeCount: post.likes.length,
-            likedByMe: post.likes.some(
-                id => id.toString() === req.user._id.toString()
-            )
+            likedByMe: req.user
+                ? post.likes.some(id => id.toString() === req.user._id.toString())
+                : false,
         }));
+
 
         res.status(200).json({
             message: "Posts retrieved successfully.",
