@@ -26,19 +26,20 @@ export const createHelpBoardPost = async (req, res) => {
 
 export const getAllHelpBoardPosts = async (req, res) => {
     try {
+        console.log("🔍 Incoming user:", req.user);
         const posts = await HelpBoardPost.find({ status: 'active' })
             .populate('postedBy', 'fullName profileImageUrl')
             .populate('replies.user', 'fullName profileImageUrl uniId')
             .sort({ createdAt: -1 })
             .lean();
 
-        const userId = req.user?._id || req.user?.id;
+        console.log("✅ Found posts:", posts.length);
 
         const enrichedPosts = posts.map(post => ({
             ...post,
-            likeCount: post.likes.length,
-            likedByMe: userId
-                ? post.likes.some(id => id.toString() === userId.toString())
+            likeCount: post.likes?.length || 0,
+            likedByMe: req.user
+                ? post.likes?.some(id => id.toString() === (req.user._id || req.user.id)?.toString())
                 : false,
         }));
 
@@ -47,10 +48,11 @@ export const getAllHelpBoardPosts = async (req, res) => {
             posts: enrichedPosts,
         });
     } catch (error) {
-        console.error("Error retrieving posts:", error);
-        res.status(500).json({ message: "Internal server error" });
+        console.error("❌ Error retrieving posts:", error);
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
+
 
 
 export const likeHelpBoardPost = async (req, res) => {
