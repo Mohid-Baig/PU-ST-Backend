@@ -59,7 +59,9 @@ export const likeHelpBoardPost = async (req, res) => {
             return res.status(404).json({ message: "Post not found." });
         }
 
-        const alreadyLiked = post.likes.includes(req.user._id);
+        const alreadyLiked = post.likes.some(
+            userId => userId.toString() === req.user._id.toString()
+        );
 
         if (alreadyLiked) {
             post.likes = post.likes.filter(
@@ -89,6 +91,7 @@ export const likeHelpBoardPost = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
 
 
 export const addReplyToHelpBoardPost = async (req, res) => {
