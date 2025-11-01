@@ -32,18 +32,19 @@ export const getAllHelpBoardPosts = async (req, res) => {
             .sort({ createdAt: -1 })
             .lean();
 
+        const userId = req.user?._id || req.user?.id;
+
         const enrichedPosts = posts.map(post => ({
             ...post,
             likeCount: post.likes.length,
-            likedByMe: req.user
-                ? post.likes.some(id => id.toString() === req.user._id.toString())
+            likedByMe: userId
+                ? post.likes.some(id => id.toString() === userId.toString())
                 : false,
         }));
 
-
         res.status(200).json({
             message: "Posts retrieved successfully.",
-            posts: enrichedPosts
+            posts: enrichedPosts,
         });
     } catch (error) {
         console.error("Error retrieving posts:", error);
@@ -51,31 +52,31 @@ export const getAllHelpBoardPosts = async (req, res) => {
     }
 };
 
+
 export const likeHelpBoardPost = async (req, res) => {
     try {
         const { id } = req.params;
-        const post = await HelpBoardPost.findById(id).populate('postedBy', 'fullName fcmToken');
+        const userId = req.user._id || req.user.id;
 
+        const post = await HelpBoardPost.findById(id).populate('postedBy', 'fullName fcmToken');
         if (!post) {
             return res.status(404).json({ message: "Post not found." });
         }
 
         const alreadyLiked = post.likes.some(
-            userId => userId.toString() === req.user._id.toString()
+            user => user.toString() === userId.toString()
         );
 
         if (alreadyLiked) {
-            post.likes = post.likes.filter(
-                userId => userId.toString() !== req.user._id.toString()
-            );
+            post.likes = post.likes.filter(user => user.toString() !== userId.toString());
         } else {
-            post.likes.push(req.user._id);
+            post.likes.push(userId);
 
-            if (post.postedBy && post.postedBy._id.toString() !== req.user._id.toString()) {
+            if (post.postedBy && post.postedBy._id.toString() !== userId.toString()) {
                 await sendNotification({
                     token: post.postedBy.fcmToken,
                     title: "New Like on Your Post",
-                    body: `${req.user.fullName} liked your post: ${post.title}`
+                    body: `${req.user.fullName || "Someone"} liked your post: ${post.title}`,
                 });
             }
         }
@@ -85,13 +86,14 @@ export const likeHelpBoardPost = async (req, res) => {
         res.status(200).json({
             message: alreadyLiked ? "Post unliked." : "Post liked.",
             likeCount: post.likes.length,
-            likedByMe: !alreadyLiked
+            likedByMe: !alreadyLiked,
         });
     } catch (error) {
         console.error("Error liking post:", error);
-        res.status(500).json({ message: "Internal server error" });
+        res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
+
 
 
 
