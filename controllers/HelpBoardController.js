@@ -29,7 +29,7 @@ export const getAllHelpBoardPosts = async (req, res) => {
         console.log("🔍 Incoming user:", req.user);
         const posts = await HelpBoardPost.find({ status: 'active' })
             .populate('postedBy', 'fullName profileImageUrl')
-            .populate('replies.user', 'fullName profileImageUrl uniId')
+            .populate('replies.user', 'fullName profileImageUrl') // Remove uniId, add avatar field if needed
             .sort({ createdAt: -1 })
             .lean();
 
