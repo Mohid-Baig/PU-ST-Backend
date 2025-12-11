@@ -27,7 +27,6 @@ export const createHelpBoardPost = async (req, res) => {
 export const getAllHelpBoardPosts = async (req, res) => {
     try {
         console.log("🔍 Incoming user:", req.user);
-        console.log("🔍 User ID:", req.user?._id || req.user?.id);
 
         const posts = await HelpBoardPost.find({ status: 'active' })
             .populate('postedBy', 'fullName profileImageUrl')
@@ -37,42 +36,25 @@ export const getAllHelpBoardPosts = async (req, res) => {
 
         console.log("✅ Found posts:", posts.length);
 
-        if (posts.length > 0) {
-            console.log("🔍 First post ID:", posts[0]._id);
-            console.log("🔍 First post likes:", posts[0].likes);
-            console.log("🔍 First post likes count:", posts[0].likes?.length);
-
-            if (posts[0].likes) {
-                posts[0].likes.forEach((like, index) => {
-                    console.log(`🔍 Like ${index}:`, like, "Type:", typeof like);
-                });
-            }
-        }
-
         const enrichedPosts = posts.map(post => {
+            const validLikes = Array.isArray(post.likes)
+                ? post.likes.filter(like => like != null)
+                : [];
+
+            const userId = req.user?._id || req.user?.id;
+
             let likedByMe = false;
-
-            if (req.user && post.likes && Array.isArray(post.likes)) {
-                const userId = req.user._id || req.user.id;
-
-                if (userId) {
-                    const validLikes = post.likes.filter(like => like != null);
-
-                    likedByMe = validLikes.some(likeId => {
-                        try {
-                            return likeId.toString() === userId.toString();
-                        } catch (err) {
-                            console.log(`Error comparing like ${likeId} for post ${post._id}:`, err);
-                            return false;
-                        }
-                    });
-                }
+            if (userId && validLikes.length > 0) {
+                likedByMe = validLikes.some(likeId =>
+                    likeId.toString() === userId.toString()
+                );
             }
 
             return {
                 ...post,
-                likeCount: post.likes?.length || 0,
-                likedByMe: likedByMe,
+                likes: validLikes,
+                likeCount: validLikes.length,
+                likedByMe,
             };
         });
 
@@ -93,20 +75,41 @@ export const likeHelpBoardPost = async (req, res) => {
         const { id } = req.params;
         const userId = req.user._id || req.user.id;
 
+        console.log(`🔍 Liking post ${id} for user ${userId}`);
+
         const post = await HelpBoardPost.findById(id).populate('postedBy', 'fullName fcmToken');
         if (!post) {
             return res.status(404).json({ message: "Post not found." });
         }
 
+        if (!Array.isArray(post.likes)) {
+            post.likes = [];
+        }
+
+        post.likes = post.likes.filter(user => user != null);
+
+        console.log(`🔍 Post likes after cleanup:`, post.likes);
+
         const alreadyLiked = post.likes.some(
-            user => user.toString() === userId.toString()
+            user => {
+                if (!user) return false;
+                return user.toString() === userId.toString();
+            }
         );
 
+        console.log(`🔍 Already liked: ${alreadyLiked}`);
+
         if (alreadyLiked) {
-            post.likes = post.likes.filter(user => user.toString() !== userId.toString());
+            // Unlike the post
+            post.likes = post.likes.filter(user => {
+                if (!user) return false;
+                return user.toString() !== userId.toString();
+            });
         } else {
+            // Like the post
             post.likes.push(userId);
 
+            // Send notification if post owner is not the current user
             if (post.postedBy && post.postedBy._id.toString() !== userId.toString()) {
                 await sendNotification({
                     token: post.postedBy.fcmToken,
@@ -124,7 +127,7 @@ export const likeHelpBoardPost = async (req, res) => {
             likedByMe: !alreadyLiked,
         });
     } catch (error) {
-        console.error("Error liking post:", error);
+        console.error("❌ Error liking post:", error);
         res.status(500).json({ message: "Internal server error", error: error.message });
     }
 };
