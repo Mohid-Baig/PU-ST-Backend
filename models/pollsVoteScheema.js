@@ -32,7 +32,8 @@ const pollSchema = new mongoose.Schema({
         default: null
     },
     expiresAt: {
-        type: Date
+        type: Date,
+        required: true
     },
     isActive: {
         type: Boolean,
@@ -49,8 +50,6 @@ const pollSchema = new mongoose.Schema({
         default: 0
     }
 }, { timestamps: true });
-
-pollSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // optional auto-delete if TTL used
 
 const Poll = mongoose.model('Poll', pollSchema);
 export default Poll;

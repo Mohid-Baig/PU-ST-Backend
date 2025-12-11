@@ -35,6 +35,11 @@ export const createPoll = async (req, res) => {
 
 export const getAllPolls = async (req, res) => {
     try {
+        await Poll.updateMany(
+            { expiresAt: { $lt: new Date() }, isActive: true },
+            { $set: { isActive: false } }
+        );
+
         const polls = await Poll.find({ isActive: true })
             .populate("createdBy", "fullName profileImageUrl")
             .sort({ createdAt: -1 });
@@ -45,6 +50,7 @@ export const getAllPolls = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
 
 export const getPollById = async (req, res) => {
     try {
@@ -78,6 +84,12 @@ export const votePoll = async (req, res) => {
             return res.status(404).json({ message: "Poll not found." });
         }
 
+        if (poll.expiresAt && poll.expiresAt < new Date()) {
+            poll.isActive = false;
+            await poll.save();
+            return res.status(400).json({ message: "Poll has expired." });
+        }
+
         if (!poll.isActive) {
             return res.status(400).json({ message: "Poll is closed." });
         }
@@ -95,12 +107,14 @@ export const votePoll = async (req, res) => {
         poll.votedUsers.push(req.user._id);
 
         await poll.save();
+
         res.status(200).json({ message: "Vote recorded successfully.", poll });
     } catch (error) {
         console.error("Error voting in poll:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
 
 export const deletePoll = async (req, res) => {
     try {

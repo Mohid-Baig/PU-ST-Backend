@@ -27,21 +27,54 @@ export const createHelpBoardPost = async (req, res) => {
 export const getAllHelpBoardPosts = async (req, res) => {
     try {
         console.log("🔍 Incoming user:", req.user);
+        console.log("🔍 User ID:", req.user?._id || req.user?.id);
+
         const posts = await HelpBoardPost.find({ status: 'active' })
             .populate('postedBy', 'fullName profileImageUrl')
-            .populate('replies.user', 'fullName profileImageUrl') // Remove uniId, add avatar field if needed
+            .populate('replies.user', 'fullName profileImageUrl')
             .sort({ createdAt: -1 })
             .lean();
 
         console.log("✅ Found posts:", posts.length);
 
-        const enrichedPosts = posts.map(post => ({
-            ...post,
-            likeCount: post.likes?.length || 0,
-            likedByMe: req.user
-                ? post.likes?.some(id => id.toString() === (req.user._id || req.user.id)?.toString())
-                : false,
-        }));
+        if (posts.length > 0) {
+            console.log("🔍 First post ID:", posts[0]._id);
+            console.log("🔍 First post likes:", posts[0].likes);
+            console.log("🔍 First post likes count:", posts[0].likes?.length);
+
+            if (posts[0].likes) {
+                posts[0].likes.forEach((like, index) => {
+                    console.log(`🔍 Like ${index}:`, like, "Type:", typeof like);
+                });
+            }
+        }
+
+        const enrichedPosts = posts.map(post => {
+            let likedByMe = false;
+
+            if (req.user && post.likes && Array.isArray(post.likes)) {
+                const userId = req.user._id || req.user.id;
+
+                if (userId) {
+                    const validLikes = post.likes.filter(like => like != null);
+
+                    likedByMe = validLikes.some(likeId => {
+                        try {
+                            return likeId.toString() === userId.toString();
+                        } catch (err) {
+                            console.log(`Error comparing like ${likeId} for post ${post._id}:`, err);
+                            return false;
+                        }
+                    });
+                }
+            }
+
+            return {
+                ...post,
+                likeCount: post.likes?.length || 0,
+                likedByMe: likedByMe,
+            };
+        });
 
         res.status(200).json({
             message: "Posts retrieved successfully.",

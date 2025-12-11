@@ -18,6 +18,7 @@ import votepollRoutes from './routes/pollRoutes.js';
 import anonymousRoutes from './routes/anonymousRoute.js';
 import eventRoutes from './routes/eventnotificationRoute.js';
 import basicAuth from 'express-basic-auth';
+import { autoCloseExpiredPolls } from './config/pollcron.js';
 
 dotenv.config();
 
@@ -68,6 +69,7 @@ app.use('/api/helpboard', helpboardRoutes);
 app.use('/api/polls', votepollRoutes);
 app.use('/api/anonymous', anonymousRoutes);
 app.use('/api/events', eventRoutes);
+setInterval(autoCloseExpiredPolls, 60 * 1000);
 app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'Server is running!', timestamp: new Date().toISOString() });
 });
