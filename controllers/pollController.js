@@ -100,8 +100,7 @@ export const votePoll = async (req, res) => {
             return res.status(400).json({ message: "Poll is closed." });
         }
 
-        const userIdStr = req.user._id.toString();
-        if (poll.votedUsers.some(uid => uid.toString() === userIdStr)) {
+        if (poll.votedUsers.includes(req.user._id)) {
             return res.status(400).json({ message: "You have already voted." });
         }
 
@@ -121,6 +120,7 @@ export const votePoll = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
 
 
 
