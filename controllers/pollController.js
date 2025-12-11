@@ -77,7 +77,11 @@ export const getPollById = async (req, res) => {
 export const votePoll = async (req, res) => {
     try {
         const { id } = req.params;
-        const { optionIndex } = req.body;
+        const optionIndex = Number(req.body.optionIndex);
+
+        if (isNaN(optionIndex)) {
+            return res.status(400).json({ message: "Option index must be a number." });
+        }
 
         const poll = await Poll.findById(id);
         if (!poll) {
@@ -94,7 +98,7 @@ export const votePoll = async (req, res) => {
             return res.status(400).json({ message: "Poll is closed." });
         }
 
-        if (poll.votedUsers.includes(req.user._id)) {
+        if (poll.votedUsers.some(u => u.toString() === req.user._id.toString())) {
             return res.status(400).json({ message: "You have already voted." });
         }
 
@@ -114,6 +118,7 @@ export const votePoll = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
 
 
 export const deletePoll = async (req, res) => {
